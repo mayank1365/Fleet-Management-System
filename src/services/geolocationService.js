@@ -9,7 +9,7 @@ const router = express.Router();
  */
 const OSM_GAZETTEER = [
   {
-    keywords: ['connaught place', 'cp', 'rajiv chowk', 'new delhi'],
+    keywords: ['connaught place', 'cp', 'rajiv chowk'],
     latitude: 28.6315,
     longitude: 77.2167,
     displayName: 'Connaught Place, New Delhi, Delhi 110001, India'
