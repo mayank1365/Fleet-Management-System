@@ -1,0 +1,39 @@
+{
+  "name": "fleet-management-system-sga2",
+  "version": "1.0.0",
+  "description": "Fleet Management System with Third-Party Geolocation (OpenStreetMap), Mock SMS Notification Gateway, API Gateway Simulation, Swagger/OpenAPI Documentation, and Mocha/Chai Test Suite",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "mocha test/**/*.test.js --timeout 10000 --exit"
+  },
+  "keywords": [
+    "fleet-management",
+    "api-gateway",
+    "geolocation",
+    "openstreetmap",
+    "sms-notifications",
+    "swagger",
+    "openapi",
+    "mocha",
+    "chai",
+    "express"
+  ],
+  "author": "Mayank Gupta (23ebcs737)",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "chai": "^4.4.1",
+    "mocha": "^10.7.3",
+    "supertest": "^7.0.0"
+  }
+}
