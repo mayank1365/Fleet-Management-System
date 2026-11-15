@@ -229,3 +229,4 @@ router.delete('/:id', authenticateJWT, authorizeRoles('admin'), (req, res) => {
 });
 
 module.exports = router;
+
