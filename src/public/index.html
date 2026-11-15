@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Management System — SGA-2 | Mayank Gupta (23ebcs737)</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --panel-alt: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding-bottom: 32px;
+    }
+    header {
+      background: linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .brand p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .header-links {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-warning { background: var(--warning); color: #0f172a; }
+    .btn-success { background: var(--success); color: #0f172a; }
+
+    .container {
+      max-width: 1420px;
+      margin: 18px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    #map {
+      width: 100%;
+      height: 390px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      align-items: center;
+    }
+    input, select {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.84rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+    }
+    .status-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .status-ACTIVE, .status-sent, .status-UP {
+      background: rgba(34, 197, 94, 0.18);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+    .status-MAINTENANCE {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .status-EMERGENCY, .status-OUT_OF_SERVICE, .status-failed, .status-DOWN {
+      background: rgba(239, 68, 68, 0.18);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .sms-item {
+      background: var(--panel-alt);
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.81rem;
+    }
+    .sms-item.failed { border-left-color: var(--danger); }
+    .sms-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    pre.console {
+      background: #050811;
+      border: 1px solid var(--border);
+      color: #a5f3fc;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      max-height: 210px;
+      overflow: auto;
+      margin-top: 10px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .kpi {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+    .kpi-label { font-size: 0.73rem; color: var(--muted); }
+    .kpi-val { font-size: 1.25rem; font-weight: 700; margin-top: 2px; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>
+        Fleet Management System & API Gateway
+        <span class="badge">Mayank Gupta • 23ebcs737 • SGA-2</span>
+      </h1>
+      <p>Third-Party Geolocation (OpenStreetMap) • Mock Twilio SMS Alerts • Express API Gateway • Swagger OpenAPI 3.0</p>
+    </div>
+    <div class="header-links">
+      <span class="badge" id="gatewayKeyBadge">API Key: fleet-gateway-api-key-2026</span>
+      <a href="/api-docs" target="_blank" class="btn">Open Swagger UI (/api-docs)</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- LEFT COLUMN: GEOLOCATION MAP & NEARBY VEHICLES -->
+    <div>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Total Fleet Vehicles</div>
+          <div class="kpi-val" id="kpiTotalVehicles">5</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Nearby Vehicles Found</div>
+          <div class="kpi-val" id="kpiNearbyCount">5</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">SMS Alerts Sent</div>
+          <div class="kpi-val" id="kpiSmsSent">3</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Gateway Rate Limit Remaining</div>
+          <div class="kpi-val" id="kpiRateLimit">29 / 30</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>1a. Geolocation & Nearby Vehicle Discovery (OpenStreetMap + Leaflet)</h2>
+          <span class="badge">Route: /api/maps/*</span>
+        </div>
+        <div id="map"></div>
+        <div class="controls-row">
+          <input type="text" id="searchAddress" value="Connaught Place, New Delhi" style="flex:1" placeholder="Enter address or landmark..." />
+          <label style="font-size:0.8rem;color:var(--muted)">Radius (km):</label>
+          <input type="number" id="searchRadius" value="6" min="1" max="100" style="width:72px" />
+          <button class="btn" id="btnSearchNearby" onclick="searchNearbyVehicles()">Search Nearby (X km)</button>
+          <button class="btn btn-outline" onclick="geocodeInputAddress()">Geocode Address</button>
+          <button class="btn btn-outline" onclick="loadAllVehicles()">Show All Fleet</button>
+        </div>
+
+        <table id="vehiclesTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>License Plate</th>
+              <th>Model & Driver</th>
+              <th>GPS Coordinates</th>
+              <th>Distance</th>
+              <th>Battery</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="vehiclesTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>2. API Gateway Routing, API Key Verification & Rate-Limiting Console</h2>
+          <span class="badge">Gateway Middleware</span>
+        </div>
+        <div class="controls-row" style="margin-top:0;margin-bottom:10px">
+          <button class="btn btn-success" onclick="testGatewayCall('valid')">Test Valid API Key (200 OK)</button>
+          <button class="btn btn-danger" onclick="testGatewayCall('missing')">Test Missing Key (401)</button>
+          <button class="btn btn-warning" onclick="testGatewayCall('invalid')">Test Invalid Key (403)</button>
+          <button class="btn btn-outline" onclick="testGatewayCall('serviceDown')">Simulate 503 Service Down</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Gateway Route Prefix</th>
+              <th>Target Microservice</th>
+              <th>Security & Policy</th>
+              <th>Health Status</th>
+            </tr>
+          </thead>
+          <tbody id="gatewayRoutingBody">
+            <tr><td><code>/api/users/*</code></td><td>User Service</td><td>API Key + JWT + RBAC</td><td><span class="status-pill status-UP">UP</span></td></tr>
+            <tr><td><code>/api/vehicles/*</code></td><td>Vehicle/Fleet Service</td><td>API Key + JWT + RBAC</td><td><span class="status-pill status-UP">UP</span></td></tr>
+            <tr><td><code>/api/telemetry/*</code></td><td>Telemetry Service</td><td>API Key + Rate Limit</td><td><span class="status-pill status-UP">UP</span></td></tr>
+            <tr><td><code>/api/maps/*</code></td><td>Geolocation Service</td><td>API Key + OpenStreetMap</td><td><span class="status-pill status-UP">UP</span></td></tr>
+            <tr><td><code>/api/notifications/*</code></td><td>Notification Service</td><td>API Key + Mock Twilio SMS</td><td><span class="status-pill status-UP">UP</span></td></tr>
+          </tbody>
+        </table>
+        <pre class="console" id="gatewayConsole">// API Gateway live request/response inspector ready...</pre>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: SMS NOTIFICATIONS & TELEMETRY / STATUS TRIGGERS -->
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <h2>1b. Trigger Critical Telemetry or Status Change (SMS Alert Generator)</h2>
+          <span class="badge">Routes: /api/telemetry & /api/vehicles</span>
+        </div>
+        <div class="controls-row" style="margin-top:0">
+          <select id="simVehicleId">
+            <option value="veh-101">veh-101 (DL-01-AB-1001)</option>
+            <option value="veh-102">veh-102 (DL-02-CD-2045)</option>
+            <option value="veh-103">veh-103 (DL-03-EF-3099)</option>
+            <option value="veh-104">veh-104 (HR-26-GH-7788)</option>
+            <option value="veh-105">veh-105 (UP-16-JK-5521)</option>
+          </select>
+          <select id="simEventType">
+            <option value="ENGINE_FAULT">Critical: ENGINE_FAULT</option>
+            <option value="LOW_BATTERY">Critical: LOW_BATTERY (11%)</option>
+            <option value="EMERGENCY_STOP">Critical: EMERGENCY_STOP</option>
+          </select>
+          <button class="btn btn-danger" id="btnTriggerTelemetry" onclick="triggerCriticalTelemetry()">Submit Critical Telemetry</button>
+        </div>
+        <div class="controls-row">
+          <select id="simNewStatus">
+            <option value="MAINTENANCE">Status -> MAINTENANCE</option>
+            <option value="EMERGENCY">Status -> EMERGENCY</option>
+            <option value="OUT_OF_SERVICE">Status -> OUT_OF_SERVICE</option>
+            <option value="ACTIVE">Status -> ACTIVE</option>
+          </select>
+          <button class="btn btn-warning" id="btnTriggerStatus" onclick="triggerStatusUpdate()">Update Vehicle Status & Notify</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Mock Twilio SMS Notification Audit Log (sent / failed)</h2>
+          <span class="badge">Route: /api/notifications</span>
+        </div>
+        <div id="smsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    const API_KEY = 'fleet-gateway-api-key-2026';
+    let jwtToken = null;
+    let map = null;
+    let markersLayer = null;
+    let radiusCircle = null;
+
+    function initMap() {
+      if (typeof L !== 'undefined') {
+        map = L.map('map').setView([28.6139, 77.2090], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '&copy; OpenStreetMap contributors | Fleet Management SGA-2'
+        }).addTo(map);
+        markersLayer = L.layerGroup().addTo(map);
+      }
+    }
+
+    function updateRateLimitHeader(res) {
+      const rem = res.headers.get('X-RateLimit-Remaining');
+      const lim = res.headers.get('X-RateLimit-Limit');
+      if (rem !== null && lim !== null) {
+        document.getElementById('kpiRateLimit').textContent = `${rem} / ${lim}`;
+      }
+    }
+
+    async function ensureAuth() {
+      if (jwtToken) return jwtToken;
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ email: 'mayank.admin@fleetops.io', password: 'Admin@123' })
+      });
+      const json = await res.json();
+      if (json.data && json.data.token) {
+        jwtToken = json.data.token;
+      }
+      return jwtToken;
+    }
+
+    function renderVehicles(vehicles, center = null) {
+      const tbody = document.getElementById('vehiclesTableBody');
+      tbody.innerHTML = '';
+      document.getElementById('kpiNearbyCount').textContent = vehicles.length;
+
+      if (map && markersLayer) {
+        markersLayer.clearLayers();
+        if (radiusCircle) {
+          map.removeLayer(radiusCircle);
+          radiusCircle = null;
+        }
+        if (center && center.radiusKm) {
+          radiusCircle = L.circle([center.latitude, center.longitude], {
+            color: '#38bdf8',
+            fillColor: '#38bdf8',
+            fillOpacity: 0.12,
+            radius: center.radiusKm * 1000
+          }).addTo(map);
+          map.setView([center.latitude, center.longitude], center.radiusKm <= 8 ? 13 : 11);
+        }
+      }
+
+      vehicles.forEach((v) => {
+        const lat = v.location ? v.location.latitude : 0;
+        const lng = v.location ? v.location.longitude : 0;
+        const dist = v.distanceKm !== undefined ? `${v.distanceKm} km` : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${v.id}</strong></td>
+          <td><code>${v.licensePlate}</code></td>
+          <td>${v.model}<br/><span style="color:#94a3b8;font-size:0.74rem">${v.driverName}</span></td>
+          <td>${lat.toFixed(4)}, ${lng.toFixed(4)}<br/><span style="color:#94a3b8;font-size:0.72rem">${v.address || ''}</span></td>
+          <td><strong>${dist}</strong></td>
+          <td>${v.batteryLevel}%</td>
+          <td><span class="status-pill status-${v.status}">${v.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+
+        if (map && markersLayer && v.location) {
+          const marker = L.marker([lat, lng]).bindPopup(
+            `<b>${v.licensePlate} (${v.id})</b><br/>${v.model}<br/>Status: <b>${v.status}</b> | Battery: ${v.batteryLevel}%<br/>${
+              v.distanceKm !== undefined ? `Distance: ${v.distanceKm} km` : v.address
+            }`
+          );
+          markersLayer.addLayer(marker);
+        }
+      });
+    }
+
+    async function loadAllVehicles() {
+      const res = await fetch('/api/vehicles', { headers: { 'x-api-key': API_KEY } });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      if (json.data) {
+        document.getElementById('kpiTotalVehicles').textContent = json.data.length;
+        renderVehicles(json.data);
+      }
+    }
+
+    async function searchNearbyVehicles() {
+      const address = document.getElementById('searchAddress').value;
+      const radius = document.getElementById('searchRadius').value || 6;
+      const url = `/api/maps/nearby?address=${encodeURIComponent(address)}&radius=${encodeURIComponent(radius)}`;
+      const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      document.getElementById('gatewayConsole').textContent = JSON.stringify(
+        {
+          endpoint: `GET ${url}`,
+          routedTo: res.headers.get('X-Gateway-Routed-To'),
+          status: res.status,
+          response: json
+        },
+        null,
+        2
+      );
+      if (json.data) {
+        renderVehicles(json.data, json.searchCenter);
+      }
+    }
+
+    async function geocodeInputAddress() {
+      const address = document.getElementById('searchAddress').value;
+      const res = await fetch('/api/maps/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ address })
+      });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      document.getElementById('gatewayConsole').textContent = JSON.stringify(
+        {
+          endpoint: 'POST /api/maps/geocode',
+          routedTo: res.headers.get('X-Gateway-Routed-To'),
+          status: res.status,
+          response: json
+        },
+        null,
+        2
+      );
+    }
+
+    async function loadNotifications() {
+      const res = await fetch('/api/notifications', { headers: { 'x-api-key': API_KEY } });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      if (!json.data) return;
+      document.getElementById('kpiSmsSent').textContent = json.summary ? json.summary.sent : json.data.length;
+
+      const list = document.getElementById('smsList');
+      list.innerHTML = '';
+      json.data.slice(0, 7).forEach((n) => {
+        const div = document.createElement('div');
+        div.className = `sms-item ${n.status}`;
+        div.innerHTML = `
+          <div class="sms-meta">
+            <span><strong>${n.eventType}</strong> • To: ${n.recipientPhone} (${n.recipientRole})</span>
+            <span class="status-pill status-${n.status}">${n.status.toUpperCase()}</span>
+          </div>
+          <div>${n.message}</div>
+          <div style="font-size:0.71rem;color:#64748b;margin-top:4px">
+            Provider: ${n.provider} | SID: <code>${n.sid || 'N/A'}</code> | ${n.timestamp}
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    async function triggerCriticalTelemetry() {
+      const vehicleId = document.getElementById('simVehicleId').value;
+      const event = document.getElementById('simEventType').value;
+      const payload = {
+        vehicleId,
+        latitude: 28.6304,
+        longitude: 77.2177,
+        speedKmh: 0,
+        batteryLevel: event === 'LOW_BATTERY' ? 11 : 68,
+        engineTempC: event === 'ENGINE_FAULT' ? 116 : 82,
+        event
+      };
+      const res = await fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify(payload)
+      });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      document.getElementById('gatewayConsole').textContent = JSON.stringify(
+        {
+          endpoint: 'POST /api/telemetry',
+          routedTo: res.headers.get('X-Gateway-Routed-To'),
+          status: res.status,
+          response: json
+        },
+        null,
+        2
+      );
+      await loadAllVehicles();
+      await loadNotifications();
+    }
+
+    async function triggerStatusUpdate() {
+      const token = await ensureAuth();
+      const vehicleId = document.getElementById('simVehicleId').value;
+      const status = document.getElementById('simNewStatus').value;
+      const res = await fetch(`/api/vehicles/${vehicleId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      document.getElementById('gatewayConsole').textContent = JSON.stringify(
+        {
+          endpoint: `PATCH /api/vehicles/${vehicleId}/status`,
+          routedTo: res.headers.get('X-Gateway-Routed-To'),
+          status: res.status,
+          response: json
+        },
+        null,
+        2
+      );
+      await loadAllVehicles();
+      await loadNotifications();
+    }
+
+    async function testGatewayCall(mode) {
+      let headers = {};
+      let url = '/api/gateway/status';
+      if (mode === 'valid') {
+        headers['x-api-key'] = API_KEY;
+      } else if (mode === 'invalid') {
+        headers['x-api-key'] = 'unauthorized-bad-key-000';
+      } else if (mode === 'serviceDown') {
+        url = '/api/vehicles';
+        headers['x-api-key'] = API_KEY;
+        headers['x-simulate-service-down'] = 'vehicles';
+      }
+      const res = await fetch(url, { headers });
+      updateRateLimitHeader(res);
+      const json = await res.json();
+      document.getElementById('gatewayConsole').textContent = JSON.stringify(
+        {
+          testScenario: mode,
+          endpoint: `GET ${url}`,
+          httpStatus: res.status,
+          gatewayRoutedTo: res.headers.get('X-Gateway-Routed-To'),
+          rateLimitRemaining: res.headers.get('X-RateLimit-Remaining'),
+          response: json
+        },
+        null,
+        2
+      );
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initMap();
+      await loadAllVehicles();
+      await loadNotifications();
+    });
+  </script>
+</body>
+</html>
