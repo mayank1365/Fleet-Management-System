@@ -294,7 +294,7 @@
         </table>
       </div>
 
-      <div class="card">
+      <div class="card" id="gatewayCard">
         <div class="card-header">
           <h2>2. API Gateway Routing, API Key Verification & Rate-Limiting Console</h2>
           <span class="badge">Gateway Middleware</span>
@@ -637,7 +637,54 @@
       initMap();
       await loadAllVehicles();
       await loadNotifications();
+
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get('view');
+      if (view === 'nearby') {
+        await searchNearbyVehicles();
+      } else if (view === 'sms') {
+        await triggerCriticalTelemetry();
+        await triggerStatusUpdate();
+      } else if (view === 'gateway') {
+        const gwCard = document.getElementById('gatewayCard');
+        if (gwCard && gwCard.parentNode) {
+          gwCard.parentNode.insertBefore(gwCard, gwCard.parentNode.children[1]);
+        }
+        const validRes = await fetch('/api/gateway/status', { headers: { 'x-api-key': API_KEY } });
+        const validJson = await validRes.json();
+        const missingRes = await fetch('/api/vehicles');
+        const missingJson = await missingRes.json();
+        const invalidRes = await fetch('/api/vehicles', { headers: { 'x-api-key': 'bad-key-999' } });
+        const invalidJson = await invalidRes.json();
+        document.getElementById('gatewayConsole').style.maxHeight = '340px';
+        document.getElementById('gatewayConsole').textContent = JSON.stringify(
+          {
+            '1_ValidApiKey_Check': {
+              endpoint: 'GET /api/gateway/status',
+              httpStatus: validRes.status,
+              rateLimitHeaders: {
+                'X-RateLimit-Limit': validRes.headers.get('X-RateLimit-Limit'),
+                'X-RateLimit-Remaining': validRes.headers.get('X-RateLimit-Remaining')
+              },
+              routingTableCount: validJson.routingTable.length
+            },
+            '2_MissingApiKey_Check (401)': {
+              endpoint: 'GET /api/vehicles (without x-api-key)',
+              httpStatus: missingRes.status,
+              response: missingJson
+            },
+            '3_InvalidApiKey_Check (403)': {
+              endpoint: 'GET /api/vehicles (with invalid x-api-key)',
+              httpStatus: invalidRes.status,
+              response: invalidJson
+            }
+          },
+          null,
+          2
+        );
+      }
     });
   </script>
 </body>
 </html>
+
