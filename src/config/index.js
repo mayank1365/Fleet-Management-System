@@ -23,3 +23,4 @@ module.exports = {
     notifications: { name: 'Notification Service', prefix: '/api/notifications', healthy: true, port: 4005 }
   }
 };
+
